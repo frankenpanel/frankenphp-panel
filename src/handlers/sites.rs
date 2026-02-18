@@ -88,15 +88,21 @@ pub async fn create_site(
 
         match output {
             Ok(out) if !out.status.success() => {
-                let stderr = String::from_utf8_lossy(&out.stderr);
-                let stdout = String::from_utf8_lossy(&out.stdout);
+                let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
                 tracing::warn!("site-create script failed: {} {}", stdout, stderr);
+                let msg = if stderr.is_empty() && stdout.is_empty() {
+                    "Could not create site on server (folder/Caddy). Check server logs.".to_string()
+                } else {
+                    let detail: String = format!("{} {}", stderr, stdout).chars().take(350).collect();
+                    format!("Site setup failed: {}", detail.trim())
+                };
                 return Ok(AddSitePage::new(
                     true,
                     form.domain,
                     install_wp,
                     AddSiteErrors {
-                        folder_path: "Could not create site on server (folder/Caddy). Check logs or run the site-create script manually.".to_string(),
+                        folder_path: msg,
                         ..Default::default()
                     },
                     String::new(),
