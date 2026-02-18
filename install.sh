@@ -98,14 +98,14 @@ cp "$SCRIPT_DIR/migrations/"*.sql "$PREFIX/migrations/"
 
 # --- Generate secrets and .env ---
 if [[ ! -f "$PREFIX/.env" ]]; then
-  echo "==> Generating random passwords and session secret..."
+  echo "==> Generating random PostgreSQL password, session secret, and admin password..."
   DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
   SESSION_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 48)
   ADMIN_PASS=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)
 
-  # Create PostgreSQL user and database if postgres is available
+  # Create PostgreSQL user and database with the generated password; .env will be updated below
   if command -v psql &>/dev/null && sudo -u postgres psql -c '\q' 2>/dev/null; then
-    echo "==> Creating PostgreSQL user and database..."
+    echo "==> Creating PostgreSQL user and database (random password)..."
     sudo -u postgres psql -c "DROP USER IF EXISTS panel;" 2>/dev/null || true
     sudo -u postgres psql -c "CREATE USER panel WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
     sudo -u postgres psql -c "DROP DATABASE IF EXISTS panel;" 2>/dev/null || true
@@ -121,6 +121,7 @@ if [[ ! -f "$PREFIX/.env" ]]; then
   cat > "$PREFIX/.env" << EOF
 DATABASE_URL=$DATABASE_URL
 PANEL_SESSION_SECRET=$SESSION_SECRET
+PANEL_BIND=0.0.0.0:2090
 EOF
   chmod 600 "$PREFIX/.env"
   echo "==> Wrote $PREFIX/.env with generated values"
@@ -179,43 +180,83 @@ EOF
   fi
 fi
 
+# --- Firewall (allow port 2090 if ufw is active) ---
+if command -v ufw &>/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+  echo "==> Allowing port 2090 in firewall (ufw)..."
+  sudo ufw allow 2090/tcp 2>/dev/null || true
+  sudo ufw status 2>/dev/null | grep 2090 || true
+fi
+
+# --- Detect server IP for display ---
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+[[ -z "$SERVER_IP" ]] && SERVER_IP=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]+' | awk '{print $2}')
+[[ -z "$SERVER_IP" ]] && SERVER_IP="127.0.0.1"
+PANEL_URL="http://${SERVER_IP}:2090"
+
 echo ""
-echo "==> Install complete"
+echo "=============================================="
+echo "  FrankenPHP Panel – install complete"
+echo "=============================================="
 echo ""
 
-# Save and print credentials when we generated them
+# Save and print all credentials when we generated them
 if [[ -n "$ADMIN_PASS" ]] && [[ -n "$DATABASE_URL" ]]; then
   CREDS_FILE="$PREFIX/.panel-credentials"
   cat > "$CREDS_FILE" << EOF
-# FrankenPHP Panel – save these and then delete this file: rm $CREDS_FILE
-Panel URL:  http://127.0.0.1:2090
-Username:   admin
-Password:   $ADMIN_PASS
+# FrankenPHP Panel – SAVE THESE THEN DELETE: sudo rm $CREDS_FILE
+# --- Panel (web UI) ---
+Panel URL:     $PANEL_URL
+Admin user:    admin
+Admin pass:    $ADMIN_PASS
+
+# --- PostgreSQL (panel database) ---
+DB host:       127.0.0.1
+DB port:       5432
+DB name:       panel
+DB user:       panel
+DB password:   $DB_PASS
+Connection:    postgres://panel:$DB_PASS@127.0.0.1/panel
 EOF
   chown "$PANEL_USER:$PANEL_USER" "$CREDS_FILE"
   chmod 600 "$CREDS_FILE"
-  echo "-------------------------------------------"
-  echo "  Panel URL:   http://127.0.0.1:2090"
-  echo "  Username:    admin"
-  echo "  Password:    $ADMIN_PASS"
-  echo "-------------------------------------------"
+
+  echo "  PANEL (web UI)"
+  echo "  -------------"
+  echo "  URL:      $PANEL_URL"
+  echo "  Username: admin"
+  echo "  Password: $ADMIN_PASS"
   echo ""
-  echo "Credentials saved to $CREDS_FILE – save them and remove the file: sudo rm $CREDS_FILE"
+  echo "  POSTGRESQL (panel database)"
+  echo "  ---------------------------"
+  echo "  Host:     127.0.0.1:5432"
+  echo "  Database: panel"
+  echo "  User:     panel"
+  echo "  Password: $DB_PASS"
+  echo ""
+  echo "  Full credentials saved to: $CREDS_FILE"
+  echo "  (Save them, then remove file: sudo rm $CREDS_FILE)"
+  echo ""
+else
+  echo "  (Existing .env kept – no new credentials generated)"
+  echo "  Panel URL: $PANEL_URL"
   echo ""
 fi
 
-echo "Next steps:"
+echo "  NEXT STEPS"
+echo "  ----------"
 echo "  1. Start the panel:"
 if [[ "$INSTALL_SYSTEMD" == true ]]; then
   echo "     sudo systemctl start frankenphp-panel"
-  echo "     sudo systemctl enable frankenphp-panel   # start on boot"
-  echo "     sudo systemctl status frankenphp-panel"
+  echo "     sudo systemctl enable frankenphp-panel"
 else
   echo "     cd $PREFIX && sudo -u $PANEL_USER ./frankenphp-panel"
 fi
 echo ""
-echo "  2. Open http://127.0.0.1:2090 (put Caddy or nginx in front for HTTPS and a public URL)."
+echo "  2. Open in browser: $PANEL_URL"
+echo ""
 if [[ -z "$ADMIN_PASS" ]]; then
-  echo "  3. If you did not get credentials above, create DB and run migrations, then: $PREFIX/frankenphp-panel set-admin-password YOUR_PASSWORD"
+  echo "  3. Set admin password: $PREFIX/frankenphp-panel set-admin-password YOUR_PASSWORD"
+  echo ""
 fi
+echo "=============================================="
 echo ""
