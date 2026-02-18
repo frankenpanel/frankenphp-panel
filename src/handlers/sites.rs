@@ -3,6 +3,8 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     Form,
 };
+use std::process::Stdio;
+use tokio::process::Command;
 use validator::Validate;
 
 use crate::auth::UserId;
@@ -70,6 +72,55 @@ pub async fn create_site(
     let install_wp = form.install_wordpress.as_deref() == Some("1");
     let folder_path = format!("/var/www/{}", form.domain.trim());
 
+    // Create site directory and Caddy config, reload Caddy (if script is configured)
+    if let Some(ref script) = state.config.site_create_script {
+        let script_path = script.as_os_str();
+        let domain = form.domain.trim().to_string();
+        let output = Command::new("sudo")
+            .arg(script_path)
+            .arg(&domain)
+            .arg(&folder_path)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .await;
+
+        match output {
+            Ok(out) if !out.status.success() => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                tracing::warn!("site-create script failed: {} {}", stdout, stderr);
+                return Ok(AddSitePage::new(
+                    true,
+                    form.domain,
+                    install_wp,
+                    AddSiteErrors {
+                        folder_path: "Could not create site on server (folder/Caddy). Check logs or run the site-create script manually.".to_string(),
+                        ..Default::default()
+                    },
+                    String::new(),
+                )
+                .into_response());
+            }
+            Err(e) => {
+                tracing::warn!("site-create script error: {}", e);
+                return Ok(AddSitePage::new(
+                    true,
+                    form.domain,
+                    install_wp,
+                    AddSiteErrors {
+                        folder_path: format!("Could not run site setup: {}. Ensure SITE_CREATE_SCRIPT is correct and the panel user can run it with sudo.", e),
+                        ..Default::default()
+                    },
+                    String::new(),
+                )
+                .into_response());
+            }
+            _ => {}
+        }
+    }
+
     let result = sqlx::query(
         "INSERT INTO sites (domain, folder_path, wordpress_installed, user_id) VALUES ($1, $2, $3, $4)",
     )
@@ -81,10 +132,7 @@ pub async fn create_site(
     .await;
 
     match result {
-        Ok(_) => {
-            // TODO: create site folder, add Caddy block, reload FrankenPHP, optionally install WordPress
-            Ok(Redirect::to("/?created=1").into_response())
-        }
+        Ok(_) => Ok(Redirect::to("/?created=1").into_response()),
         Err(e) => {
             let (err_msg, folder_error) = if let sqlx::Error::Database(db) = &e {
                 if db.is_unique_violation() {

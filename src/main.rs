@@ -34,7 +34,10 @@ async fn main() -> anyhow::Result<()> {
     let pool = db::create_pool(&config.database_url).await?;
     db::run_migrations(&pool).await?;
 
-    let state = AppState { pool };
+    let state = AppState {
+        pool,
+        config: config.clone(),
+    };
 
     let public = Router::new()
         .route("/login", get(handlers::get_login).post(handlers::post_login))

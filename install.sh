@@ -105,10 +105,14 @@ echo "==> Installing to $PREFIX"
 mkdir -p "$PREFIX"
 mkdir -p "$PREFIX/static"
 mkdir -p "$PREFIX/migrations"
+mkdir -p "$PREFIX/scripts"
 
 install -m 755 "$BINARY" "$PREFIX/frankenphp-panel"
 cp -r "$SCRIPT_DIR/static/"* "$PREFIX/static/"
 cp "$SCRIPT_DIR/migrations/"*.sql "$PREFIX/migrations/"
+if [[ -f "$SCRIPT_DIR/scripts/site-create.sh" ]]; then
+  install -m 755 "$SCRIPT_DIR/scripts/site-create.sh" "$PREFIX/scripts/site-create.sh"
+fi
 
 # --- Generate secrets and .env ---
 if [[ ! -f "$PREFIX/.env" ]]; then
@@ -136,6 +140,7 @@ if [[ ! -f "$PREFIX/.env" ]]; then
 DATABASE_URL=$DATABASE_URL
 PANEL_SESSION_SECRET=$SESSION_SECRET
 PANEL_BIND=0.0.0.0:2090
+SITE_CREATE_SCRIPT=$PREFIX/scripts/site-create.sh
 EOF
   chmod 600 "$PREFIX/.env"
   echo "==> Wrote $PREFIX/.env with generated values"
@@ -192,6 +197,16 @@ WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
   fi
+fi
+
+# --- Sudoers: allow panel user to run site-create.sh (creates /var/www, Caddy config, reload) ---
+if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
+  SUDOERS_FILE="/etc/sudoers.d/frankenphp-panel-site-create"
+  echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-create.sh" > "$SUDOERS_FILE"
+  chmod 440 "$SUDOERS_FILE"
+  echo "==> Configured sudoers: $PANEL_USER may run site-create.sh"
+  mkdir -p /etc/caddy/sites
+  echo "==> Created /etc/caddy/sites (Caddy include dir for new sites)"
 fi
 
 # --- Firewall (allow port 2090 if ufw is active) ---
@@ -270,6 +285,10 @@ if [[ "$INSTALL_SYSTEMD" == true ]]; then
 else
   echo "  1. Start the panel: cd $PREFIX && sudo -u $PANEL_USER ./frankenphp-panel"
   echo "  2. Open in browser: $PANEL_URL"
+fi
+if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
+  echo ""
+  echo "  Add Site creates /var/www/<domain> and Caddy config. Caddyfile must include: import /etc/caddy/sites/*"
 fi
 if [[ -z "$ADMIN_PASS" ]]; then
   echo ""
