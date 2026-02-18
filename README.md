@@ -108,6 +108,8 @@ If you add a WordPress site but the database is not created:
 
 If the script fails, the panel will show the MySQL/MariaDB error message so you can fix the cause.
 
+**“Error establishing a database connection”** on an existing WordPress site: the panel now generates `wp-config.php` with `DB_HOST` set to `127.0.0.1` (instead of `localhost`) so PHP connects over TCP and avoids socket/IPv6 issues. If you already created the site before this change, edit the site’s `wp-config.php` and set `define('DB_HOST', '127.0.0.1');`. If it still fails, ensure the MariaDB user can connect from 127.0.0.1 (e.g. run as root: `mysql -e "CREATE USER 'wp_YourDbUser'@'127.0.0.1' IDENTIFIED BY 'password'; GRANT ALL ON wp_YourDbName.* TO 'wp_YourDbUser'@'127.0.0.1'; FLUSH PRIVILEGES;"` using the DB_NAME/DB_USER/DB_PASSWORD from `wp-config.php`).
+
 ## WordPress debug and fixing issues
 
 WordPress sites installed by the panel have **debug logging enabled by default** so you can fix errors without showing them to visitors:

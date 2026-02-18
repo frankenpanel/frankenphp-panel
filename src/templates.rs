@@ -86,6 +86,10 @@ pub struct SiteDetailPage {
     pub site: Site,
     pub databases: Vec<SiteDatabase>,
     pub ssl_status: String,
+    /// Server IP or hostname (for display)
+    pub site_ip: String,
+    /// System user that owns site files (e.g. www-data)
+    pub site_user: String,
 }
 
 impl LoginPage {

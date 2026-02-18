@@ -2,7 +2,19 @@
 {% block title %}{{ site.domain }}{% endblock %}
 {% block content %}
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ site.domain }}</h1>
+    <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ site.domain }}</h1>
+        <dl class="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-600">
+            <span class="flex items-center gap-1.5">
+                <span class="text-slate-400 font-medium">IP</span>
+                <span class="font-mono text-slate-700">{{ site_ip }}</span>
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="text-slate-400 font-medium">Site user</span>
+                <span class="font-mono text-slate-700">{{ site_user }}</span>
+            </span>
+        </dl>
+    </div>
     <div class="flex flex-wrap items-center gap-2">
         <form action="/sites/{{ site.id }}/restart" method="post" class="inline">
             <button type="submit" class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors" id="restart-btn">Restart Site</button>
@@ -10,9 +22,20 @@
         <button type="button" class="btn-delete-site inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors" data-id="{{ site.id }}" data-domain="{{ site.domain }}">Delete Site</button>
     </div>
 </div>
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h2 class="text-lg font-semibold text-slate-900 mb-4">General</h2>
+
+{# Tabs #}
+<div class="site-detail-tabs border-b border-slate-200 mb-6">
+    <nav class="flex gap-1" role="tablist" aria-label="Site sections">
+        <button type="button" role="tab" aria-selected="true" aria-controls="panel-settings" id="tab-settings" data-tab="settings" class="tab-btn px-4 py-3 text-sm font-medium rounded-t-lg border-b-2 -mb-px border-blue-600 text-blue-600 bg-white transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Settings</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="panel-database" id="tab-database" data-tab="database" class="tab-btn px-4 py-3 text-sm font-medium rounded-t-lg border-b-2 -mb-px border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Database</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="panel-ssl" id="tab-ssl" data-tab="ssl" class="tab-btn px-4 py-3 text-sm font-medium rounded-t-lg border-b-2 -mb-px border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">SSL Details</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="panel-security" id="tab-security" data-tab="security" class="tab-btn px-4 py-3 text-sm font-medium rounded-t-lg border-b-2 -mb-px border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Security</button>
+    </nav>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" data-panel="settings" class="p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Settings</h2>
         <dl class="space-y-3">
             <div>
                 <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">Domain</dt>
@@ -30,15 +53,10 @@
                 <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">WordPress</dt>
                 <dd class="mt-0.5 text-slate-700">{% if site.wordpress_installed %}Installed{% else %}No{% endif %}</dd>
             </div>
-            <div>
-                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">SSL</dt>
-                <dd class="mt-0.5">
-                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">{{ ssl_status }}</span>
-                </dd>
-            </div>
         </dl>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+
+    <div id="panel-database" role="tabpanel" aria-labelledby="tab-database" data-panel="database" class="p-6 hidden">
         <h2 class="text-lg font-semibold text-slate-900 mb-4">Databases</h2>
         {% if databases.is_empty() %}
         <p class="text-slate-500 text-sm">No databases.</p>
@@ -46,7 +64,7 @@
         {% else %}
         <ul class="space-y-2">
             {% for db in databases %}
-            <li class="flex items-center justify-between text-sm">
+            <li class="flex items-center justify-between text-sm py-2 border-b border-slate-100 last:border-0">
                 <span class="font-medium text-slate-800">{{ db.db_name }}</span>
                 <span class="text-slate-500">user: {{ db.db_user }}</span>
             </li>
@@ -55,5 +73,55 @@
         <a href="/databases/new?site_id={{ site.id }}" class="mt-4 inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">Add Database</a>
         {% endif %}
     </div>
+
+    <div id="panel-ssl" role="tabpanel" aria-labelledby="tab-ssl" data-panel="ssl" class="p-6 hidden">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">SSL Details</h2>
+        <dl class="space-y-3">
+            <div>
+                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">Status</dt>
+                <dd class="mt-0.5">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">{{ ssl_status }}</span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">Certificate</dt>
+                <dd class="mt-0.5 text-slate-600 text-sm">Managed by Caddy/FrankenPHP. Certificate details can be shown here when integrated.</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div id="panel-security" role="tabpanel" aria-labelledby="tab-security" data-panel="security" class="p-6 hidden">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Security</h2>
+        <p class="text-slate-600 text-sm">Security options (e.g. firewall rules, SSH access, 2FA) can be configured here when available.</p>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var container = document.querySelector('.site-detail-tabs');
+  if (!container) return;
+  var tabs = container.querySelectorAll('.tab-btn');
+  var panels = document.querySelectorAll('[data-panel]');
+  function showPanel(name) {
+    tabs.forEach(function (t) {
+      var isActive = t.getAttribute('data-tab') === name;
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      t.classList.toggle('border-blue-600', isActive);
+      t.classList.toggle('text-blue-600', isActive);
+      t.classList.toggle('border-transparent', !isActive);
+      t.classList.toggle('text-slate-600', !isActive);
+    });
+    panels.forEach(function (p) {
+      p.classList.toggle('hidden', p.getAttribute('data-panel') !== name);
+    });
+  }
+  tabs.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      showPanel(btn.getAttribute('data-tab'));
+    });
+  });
+})();
+</script>
 {% endblock %}

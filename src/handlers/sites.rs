@@ -285,11 +285,26 @@ pub async fn site_detail(
     .fetch_all(&state.pool)
     .await?;
 
+    let site_ip = state
+        .config
+        .server_ip
+        .as_deref()
+        .unwrap_or("—")
+        .to_string();
+    let site_user = state
+        .config
+        .web_user
+        .as_deref()
+        .unwrap_or("www-data")
+        .to_string();
+
     Ok(SiteDetailPage {
         logged_in: true,
         site,
         databases,
         ssl_status: "active".to_string(), // TODO: real SSL check
+        site_ip,
+        site_user,
     }
     .into_response())
 }
