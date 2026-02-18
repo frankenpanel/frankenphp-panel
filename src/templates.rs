@@ -40,6 +40,9 @@ pub struct AddSitePage {
     pub logged_in: bool,
     pub domain: String,
     pub install_wordpress: bool,
+    pub wp_title: String,
+    pub wp_admin_user: String,
+    pub wp_admin_email: String,
     pub errors: AddSiteErrors,
     pub error_message: String,
 }
@@ -48,6 +51,10 @@ pub struct AddSitePage {
 pub struct AddSiteErrors {
     pub domain: String,
     pub folder_path: String,
+    pub wp_title: String,
+    pub wp_admin_user: String,
+    pub wp_admin_password: String,
+    pub wp_admin_email: String,
 }
 
 #[derive(Template)]
@@ -98,6 +105,9 @@ impl AddSitePage {
         logged_in: bool,
         domain: String,
         install_wordpress: bool,
+        wp_title: String,
+        wp_admin_user: String,
+        wp_admin_email: String,
         errors: AddSiteErrors,
         error_message: String,
     ) -> Self {
@@ -105,6 +115,9 @@ impl AddSitePage {
             logged_in,
             domain,
             install_wordpress,
+            wp_title,
+            wp_admin_user,
+            wp_admin_email,
             errors,
             error_message,
         }

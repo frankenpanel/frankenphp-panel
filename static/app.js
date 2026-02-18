@@ -50,6 +50,19 @@
       var btn = document.getElementById('add-site-btn');
       if (btn) btn.classList.add('loading');
     });
+    var wpCheckbox = document.getElementById('install_wordpress');
+    var wpFields = document.getElementById('wordpress-fields');
+    if (wpCheckbox && wpFields) {
+      function toggleWpFields() {
+        wpFields.classList.toggle('hidden', !wpCheckbox.checked);
+        [ 'wp_title', 'wp_admin_user', 'wp_admin_password', 'wp_admin_email' ].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.required = wpCheckbox.checked;
+        });
+      }
+      wpCheckbox.addEventListener('change', toggleWpFields);
+      toggleWpFields();
+    }
   }
 
   var addDbForm = document.getElementById('add-database-form');

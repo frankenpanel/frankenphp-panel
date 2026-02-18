@@ -49,12 +49,12 @@ if [[ "$SKIP_DEPS" != true ]]; then
   if command -v apt-get &>/dev/null; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
-    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql postgresql-client mariadb-server || true
+    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql postgresql-client mariadb-server php-cli php-mysql || true
   elif command -v dnf &>/dev/null; then
-    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server || true
+    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server php-cli php-mysqlnd || true
     if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   elif command -v yum &>/dev/null; then
-    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server || true
+    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server php-cli php-mysqlnd || true
     if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   else
     echo "Warning: Unsupported package manager. Install manually: curl, build-essential, libssl-dev, libpq-dev, postgresql, postgresql-client"
@@ -84,6 +84,14 @@ if [[ "$SKIP_DEPS" != true ]]; then
   if ! command -v cargo &>/dev/null; then
     echo "Error: cargo not found. Add ~/.cargo/bin to PATH and re-run."
     exit 1
+  fi
+
+  # WP-CLI for completing WordPress install (admin user, title, etc.) when adding a site
+  if ! command -v wp &>/dev/null && command -v php &>/dev/null; then
+    echo "==> Installing WP-CLI..."
+    curl -sSLf "https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar" -o /tmp/wp-cli.phar
+    chmod +x /tmp/wp-cli.phar
+    mv /tmp/wp-cli.phar /usr/local/bin/wp 2>/dev/null || true
   fi
 fi
 

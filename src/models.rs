@@ -53,6 +53,14 @@ pub struct AddSiteForm {
     #[validate(length(min = 1, message = "Domain is required"))]
     pub domain: String,
     pub install_wordpress: Option<String>,
+    /// WordPress site title (required when install_wordpress=1)
+    pub wp_title: Option<String>,
+    /// WordPress admin username (required when install_wordpress=1)
+    pub wp_admin_user: Option<String>,
+    /// WordPress admin password (required when install_wordpress=1)
+    pub wp_admin_password: Option<String>,
+    /// WordPress admin email (required when install_wordpress=1)
+    pub wp_admin_email: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

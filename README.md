@@ -99,6 +99,19 @@ The UI uses Tailwind via CDN (no build step). For production you may replace wit
 - **PHP site:** Panel creates `/var/www/<domain>`, Caddy snippet, and reloads FrankenPHP. Site is live; add your PHP files via SFTP or deploy.
 - **WordPress site:** Panel does the same, then creates a MariaDB database and user, downloads WordPress, and writes `wp-config.php`. You open the site in the browser and complete the 5-minute setup (title, admin user, password). No manual DB or wp-config steps.
 
+## WordPress debug and fixing issues
+
+WordPress sites installed by the panel have **debug logging enabled by default** so you can fix errors without showing them to visitors:
+
+- **Log file:** Errors and notices are written to `wp-content/debug.log` (e.g. `/var/www/example.com/wp-content/debug.log`).
+- **Display off:** `WP_DEBUG_DISPLAY` is `false`, so visitors do not see PHP errors on the page.
+
+**To fix issues smoothly:**
+
+1. **Check the log** – On the server: `tail -f /var/www/<your-domain>/wp-content/debug.log` (or open the file). Reproduce the problem and read the messages.
+2. **Show errors in the browser (temporarily)** – Edit the site’s `wp-config.php` and set `define('WP_DEBUG_DISPLAY', true);`. Reload the page, fix the issue, then set it back to `false` and clear or rotate the log.
+3. **Turn off debug in production** – In `wp-config.php` set `define('WP_DEBUG', false);` (and optionally remove or comment out `WP_DEBUG_LOG` and `WP_DEBUG_DISPLAY`).
+
 ## TODO (backend integration)
 
 - SSL status from Caddy; real site status (e.g. health check).

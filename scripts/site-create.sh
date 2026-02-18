@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # Create site directory and Caddy config, optionally install WordPress.
-# Usage: sudo ./site-create.sh <domain> <site_path> [install_wordpress]
-# Example: sudo ./site-create.sh example.com /var/www/example.com 1
-# Env (optional): WEB_USER, CADDY_SITES_DIR, CADDYFILE, CADDY_RELOAD_CMD
+# Usage: sudo ./site-create.sh <domain> <site_path> [install_wordpress] [wp_title] [wp_admin_user] [wp_admin_password] [wp_admin_email]
+# When install_wordpress=1, args 4–7 are WordPress site title, admin user, password, email (for wp core install).
 
 set -e
 
 if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <domain> <site_path> [install_wordpress=0]" >&2
+  echo "Usage: $0 <domain> <site_path> [install_wordpress=0] [wp_title] [wp_admin_user] [wp_admin_password] [wp_admin_email]" >&2
   exit 1
 fi
 
 DOMAIN="$1"
 SITE_PATH="$2"
 INSTALL_WORDPRESS="${3:-0}"
+WP_TITLE="${4:-}"
+WP_ADMIN_USER="${5:-}"
+WP_ADMIN_PASS="${6:-}"
+WP_ADMIN_EMAIL="${7:-}"
 WEB_USER="${WEB_USER:-www-data}"
 CADDY_SITES_DIR="${CADDY_SITES_DIR:-/etc/caddy/sites}"
 CADDYFILE="${CADDYFILE:-/etc/caddy/Caddyfile}"
@@ -59,7 +62,12 @@ define('DB_COLLATE', '');
       echo "$SALTS"
       echo "
 \$table_prefix = 'wp_';
-define('WP_DEBUG', false);
+/* WordPress debug: log to wp-content/debug.log; set WP_DEBUG_DISPLAY to true only when fixing issues locally */
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+define('WP_DEBUG_DISPLAY', false);
+@ini_set('display_errors', 0);
+define('SCRIPT_DEBUG', false);
 if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }
 require_once ABSPATH . 'wp-settings.php';
 "
@@ -67,7 +75,19 @@ require_once ABSPATH . 'wp-settings.php';
     if getent passwd "$WEB_USER" &>/dev/null; then
       chown -R "$WEB_USER:$WEB_USER" "$SITE_PATH"
     fi
-    echo "WordPress installed. Open https://$DOMAIN to complete the 5-minute setup."
+    # Complete WordPress install with admin user, title, email (DB name/user are random and already in wp-config)
+    if [[ -n "$WP_TITLE" && -n "$WP_ADMIN_USER" && -n "$WP_ADMIN_PASS" && -n "$WP_ADMIN_EMAIL" ]] && command -v wp &>/dev/null; then
+      if wp core install --url="http://${DOMAIN}" --title="$WP_TITLE" --admin_user="$WP_ADMIN_USER" --admin_password="$WP_ADMIN_PASS" --admin_email="$WP_ADMIN_EMAIL" --path="$SITE_PATH" --skip-email 2>/dev/null; then
+        if getent passwd "$WEB_USER" &>/dev/null; then
+          chown -R "$WEB_USER:$WEB_USER" "$SITE_PATH"
+        fi
+        echo "WordPress installed. Log in at http://${DOMAIN}/wp-admin with $WP_ADMIN_USER and your chosen password."
+      else
+        echo "WordPress files and database are ready. Run the 5-minute setup at http://${DOMAIN}/wp-admin/install.php" >&2
+      fi
+    else
+      echo "WordPress files and database are ready. Open http://${DOMAIN}/wp-admin/install.php to complete the 5-minute setup."
+    fi
   else
     echo "Warning: Could not create MySQL database for WordPress. Install MariaDB and try again." >&2
   fi

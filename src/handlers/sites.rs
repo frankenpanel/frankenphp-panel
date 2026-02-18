@@ -13,6 +13,43 @@ use crate::models::{validate_domain, AddSiteForm};
 use crate::state::AppState;
 use crate::templates::{AddSiteErrors, AddSitePage, SiteDetailPage};
 
+fn wp_form_values(form: &AddSiteForm) -> (String, String, String) {
+    (
+        form.wp_title.as_deref().unwrap_or("").trim().to_string(),
+        form.wp_admin_user.as_deref().unwrap_or("").trim().to_string(),
+        form.wp_admin_email.as_deref().unwrap_or("").trim().to_string(),
+    )
+}
+
+fn validate_wp_fields(form: &AddSiteForm) -> AddSiteErrors {
+    let mut e = AddSiteErrors::default();
+    let title = form.wp_title.as_deref().unwrap_or("").trim();
+    let user = form.wp_admin_user.as_deref().unwrap_or("").trim();
+    let pass = form.wp_admin_password.as_deref().unwrap_or("");
+    let email = form.wp_admin_email.as_deref().unwrap_or("").trim();
+    if title.is_empty() {
+        e.wp_title = "Site title is required.".to_string();
+    }
+    if user.is_empty() {
+        e.wp_admin_user = "Admin username is required.".to_string();
+    } else if user.len() > 60 || !user.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        e.wp_admin_user = "Username: letters, numbers, and underscores only (max 60).".to_string();
+    }
+    if pass.len() < 8 {
+        e.wp_admin_password = "Password must be at least 8 characters.".to_string();
+    }
+    if email.is_empty() {
+        e.wp_admin_email = "Admin email is required.".to_string();
+    } else if !email.contains('@') || !email.split('@').nth(1).map_or(false, |after| after.contains('.')) {
+        e.wp_admin_email = "Enter a valid email address.".to_string();
+    }
+    e
+}
+
+fn has_wp_errors(e: &AddSiteErrors) -> bool {
+    !e.wp_title.is_empty() || !e.wp_admin_user.is_empty() || !e.wp_admin_password.is_empty() || !e.wp_admin_email.is_empty()
+}
+
 pub async fn new_site(
     State(_state): State<AppState>,
     Extension(_user_id): Extension<UserId>,
@@ -21,6 +58,9 @@ pub async fn new_site(
         true,
         String::new(),
         false,
+        String::new(),
+        String::new(),
+        String::new(),
         AddSiteErrors::default(),
         String::new(),
     ))
@@ -44,11 +84,15 @@ pub async fn create_site(
             }
         }
     }
+    let (wp_title, wp_admin_user, wp_admin_email) = wp_form_values(&form);
     if !errors.domain.is_empty() {
         return Ok(AddSitePage::new(
             true,
             form.domain,
             form.install_wordpress.as_deref() == Some("1"),
+            wp_title,
+            wp_admin_user,
+            wp_admin_email,
             errors,
             String::new(),
         )
@@ -60,6 +104,9 @@ pub async fn create_site(
             true,
             form.domain,
             form.install_wordpress.as_deref() == Some("1"),
+            wp_title.clone(),
+            wp_admin_user.clone(),
+            wp_admin_email.clone(),
             AddSiteErrors {
                 domain: msg,
                 ..Default::default()
@@ -70,6 +117,23 @@ pub async fn create_site(
     }
 
     let install_wp = form.install_wordpress.as_deref() == Some("1");
+    if install_wp {
+        let wp_errors = validate_wp_fields(&form);
+        if has_wp_errors(&wp_errors) {
+            return Ok(AddSitePage::new(
+                true,
+                form.domain,
+                true,
+                wp_title,
+                wp_admin_user,
+                wp_admin_email,
+                wp_errors,
+                String::new(),
+            )
+            .into_response());
+        }
+    }
+
     let folder_path = format!("/var/www/{}", form.domain.trim());
 
     // Create site directory and Caddy config, reload Caddy (if script is configured)
@@ -77,16 +141,21 @@ pub async fn create_site(
         let script_path = script.as_os_str();
         let domain = form.domain.trim().to_string();
         let wp_arg = if install_wp { "1" } else { "0" };
-        let output = Command::new("sudo")
-            .arg(script_path)
+        let mut cmd = Command::new("sudo");
+        cmd.arg(script_path)
             .arg(&domain)
             .arg(&folder_path)
             .arg(wp_arg)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .await;
+            .stderr(Stdio::piped());
+        if install_wp {
+            cmd.arg(form.wp_title.as_deref().unwrap_or(""))
+                .arg(form.wp_admin_user.as_deref().unwrap_or(""))
+                .arg(form.wp_admin_password.as_deref().unwrap_or(""))
+                .arg(form.wp_admin_email.as_deref().unwrap_or(""));
+        }
+        let output = cmd.output().await;
 
         match output {
             Ok(out) if !out.status.success() => {
@@ -103,6 +172,9 @@ pub async fn create_site(
                     true,
                     form.domain,
                     install_wp,
+                    wp_title,
+                    wp_admin_user,
+                    wp_admin_email,
                     AddSiteErrors {
                         folder_path: msg,
                         ..Default::default()
@@ -117,6 +189,9 @@ pub async fn create_site(
                     true,
                     form.domain,
                     install_wp,
+                    wp_title,
+                    wp_admin_user,
+                    wp_admin_email,
                     AddSiteErrors {
                         folder_path: format!("Could not run site setup: {}. Ensure SITE_CREATE_SCRIPT is correct and the panel user can run it with sudo.", e),
                         ..Default::default()
@@ -158,6 +233,9 @@ pub async fn create_site(
                 true,
                 form.domain,
                 install_wp,
+                wp_title,
+                wp_admin_user,
+                wp_admin_email,
                 AddSiteErrors {
                     folder_path: folder_error,
                     ..Default::default()
