@@ -41,13 +41,27 @@ if [[ "$SKIP_DEPS" != true ]]; then
   if command -v apt-get &>/dev/null; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
-    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql-client || true
+    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql postgresql-client || true
   elif command -v dnf &>/dev/null; then
-    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql || true
+    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server || true
+    if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   elif command -v yum &>/dev/null; then
-    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql || true
+    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server || true
+    if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   else
-    echo "Warning: Unsupported package manager. Install manually: curl, build-essential, libssl-dev, libpq-dev, postgresql-client"
+    echo "Warning: Unsupported package manager. Install manually: curl, build-essential, libssl-dev, libpq-dev, postgresql, postgresql-client"
+  fi
+
+  # Start and enable PostgreSQL so DB is ready for the panel
+  if command -v systemctl &>/dev/null; then
+    echo "==> Starting PostgreSQL..."
+    systemctl start postgresql 2>/dev/null || systemctl start postgresql@*-main 2>/dev/null || true
+    systemctl enable postgresql 2>/dev/null || systemctl enable postgresql@*-main 2>/dev/null || true
+    echo "==> Waiting for PostgreSQL to accept connections..."
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+      if sudo -u postgres psql -c '\q' 2>/dev/null; then break; fi
+      sleep 1
+    done
   fi
 
   if ! command -v cargo &>/dev/null; then
@@ -138,9 +152,9 @@ chown -R "$PANEL_USER:$PANEL_USER" "$PREFIX"
 # --- Run migrations and set admin password (only if we generated .env and have ADMIN_PASS) ---
 if [[ -n "$ADMIN_PASS" ]] && [[ -n "$DATABASE_URL" ]]; then
   echo "==> Running database migrations..."
-  sudo -u "$PANEL_USER" env DATABASE_URL="$DATABASE_URL" PANEL_SESSION_SECRET="$SESSION_SECRET" bash -c "cd $PREFIX && ./frankenphp-panel migrate" || true
+  sudo -u "$PANEL_USER" env DATABASE_URL="$DATABASE_URL" PANEL_SESSION_SECRET="$SESSION_SECRET" bash -c "cd $PREFIX && ./frankenphp-panel migrate"
   echo "==> Setting admin password..."
-  sudo -u "$PANEL_USER" env DATABASE_URL="$DATABASE_URL" PANEL_SESSION_SECRET="$SESSION_SECRET" bash -c "cd $PREFIX && ./frankenphp-panel set-admin-password \"$ADMIN_PASS\"" || true
+  sudo -u "$PANEL_USER" env DATABASE_URL="$DATABASE_URL" PANEL_SESSION_SECRET="$SESSION_SECRET" bash -c "cd $PREFIX && ./frankenphp-panel set-admin-password \"$ADMIN_PASS\""
 fi
 
 # --- Systemd ---
@@ -185,6 +199,13 @@ if command -v ufw &>/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: 
   echo "==> Allowing port 2090 in firewall (ufw)..."
   sudo ufw allow 2090/tcp 2>/dev/null || true
   sudo ufw status 2>/dev/null | grep 2090 || true
+fi
+
+# --- Start panel service so it is running when install finishes ---
+if [[ "$INSTALL_SYSTEMD" == true ]]; then
+  echo "==> Starting FrankenPHP Panel service..."
+  systemctl start frankenphp-panel 2>/dev/null || true
+  systemctl enable frankenphp-panel 2>/dev/null || true
 fi
 
 # --- Detect server IP for display ---
@@ -242,21 +263,18 @@ else
   echo ""
 fi
 
-echo "  NEXT STEPS"
-echo "  ----------"
-echo "  1. Start the panel:"
+echo "  NEXT STEP"
+echo "  ---------"
 if [[ "$INSTALL_SYSTEMD" == true ]]; then
-  echo "     sudo systemctl start frankenphp-panel"
-  echo "     sudo systemctl enable frankenphp-panel"
+  echo "  Panel is running. Open in browser: $PANEL_URL"
 else
-  echo "     cd $PREFIX && sudo -u $PANEL_USER ./frankenphp-panel"
+  echo "  1. Start the panel: cd $PREFIX && sudo -u $PANEL_USER ./frankenphp-panel"
+  echo "  2. Open in browser: $PANEL_URL"
 fi
-echo ""
-echo "  2. Open in browser: $PANEL_URL"
-echo ""
 if [[ -z "$ADMIN_PASS" ]]; then
-  echo "  3. Set admin password: $PREFIX/frankenphp-panel set-admin-password YOUR_PASSWORD"
   echo ""
+  echo "  Set admin password: sudo -u $PANEL_USER $PREFIX/frankenphp-panel set-admin-password YOUR_PASSWORD"
 fi
+echo ""
 echo "=============================================="
 echo ""
