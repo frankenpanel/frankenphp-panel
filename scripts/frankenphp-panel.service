@@ -13,8 +13,7 @@ ExecStart=/opt/frankenphp-panel/frankenphp-panel
 Restart=on-failure
 RestartSec=5
 
-# Security (optional: tighten as needed)
-NoNewPrivileges=yes
+# NoNewPrivileges=yes would block sudo (needed for site-create.sh); panel still runs as User=panel
 PrivateTmp=yes
 
 [Install]

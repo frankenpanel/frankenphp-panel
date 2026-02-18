@@ -189,7 +189,7 @@ EnvironmentFile=$PREFIX/.env
 ExecStart=$PREFIX/frankenphp-panel
 Restart=on-failure
 RestartSec=5
-NoNewPrivileges=yes
+# NoNewPrivileges=yes would block sudo (needed for site-create.sh)
 PrivateTmp=yes
 
 [Install]
