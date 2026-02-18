@@ -39,7 +39,6 @@ pub struct DashboardPage {
 pub struct AddSitePage {
     pub logged_in: bool,
     pub domain: String,
-    pub folder_path: String,
     pub install_wordpress: bool,
     pub errors: AddSiteErrors,
     pub error_message: String,
@@ -98,7 +97,6 @@ impl AddSitePage {
     pub fn new(
         logged_in: bool,
         domain: String,
-        folder_path: String,
         install_wordpress: bool,
         errors: AddSiteErrors,
         error_message: String,
@@ -106,7 +104,6 @@ impl AddSitePage {
         Self {
             logged_in,
             domain,
-            folder_path,
             install_wordpress,
             errors,
             error_message,

@@ -52,8 +52,6 @@ pub struct LoginForm {
 pub struct AddSiteForm {
     #[validate(length(min = 1, message = "Domain is required"))]
     pub domain: String,
-    #[validate(length(min = 1, message = "Folder path is required"))]
-    pub folder_path: String,
     pub install_wordpress: Option<String>,
 }
 

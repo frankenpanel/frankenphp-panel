@@ -18,7 +18,6 @@ pub async fn new_site(
     Ok(AddSitePage::new(
         true,
         String::new(),
-        String::new(),
         false,
         AddSiteErrors::default(),
         String::new(),
@@ -38,18 +37,15 @@ pub async fn create_site(
                 .and_then(|m| m.message.as_ref())
                 .map(|m| m.to_string())
                 .unwrap_or_else(|| "Invalid".to_string());
-            match field.as_ref() {
-                "domain" => errors.domain = msg,
-                "folder_path" => errors.folder_path = msg,
-                _ => {}
+            if field == "domain" {
+                errors.domain = msg;
             }
         }
     }
-    if !errors.domain.is_empty() || !errors.folder_path.is_empty() {
+    if !errors.domain.is_empty() {
         return Ok(AddSitePage::new(
             true,
             form.domain,
-            form.folder_path.clone(),
             form.install_wordpress.as_deref() == Some("1"),
             errors,
             String::new(),
@@ -61,7 +57,6 @@ pub async fn create_site(
         return Ok(AddSitePage::new(
             true,
             form.domain,
-            form.folder_path,
             form.install_wordpress.as_deref() == Some("1"),
             AddSiteErrors {
                 domain: msg,
@@ -73,12 +68,13 @@ pub async fn create_site(
     }
 
     let install_wp = form.install_wordpress.as_deref() == Some("1");
+    let folder_path = format!("/var/www/{}", form.domain.trim());
 
     let result = sqlx::query(
         "INSERT INTO sites (domain, folder_path, wordpress_installed, user_id) VALUES ($1, $2, $3, $4)",
     )
     .bind(&form.domain)
-    .bind(&form.folder_path)
+    .bind(&folder_path)
     .bind(install_wp)
     .bind(user_id.value())
     .execute(&state.pool)
@@ -90,22 +86,27 @@ pub async fn create_site(
             Ok(Redirect::to("/?created=1").into_response())
         }
         Err(e) => {
-            let msg = if let sqlx::Error::Database(db) = &e {
+            let (err_msg, folder_error) = if let sqlx::Error::Database(db) = &e {
                 if db.is_unique_violation() {
-                    "Domain or folder path already in use."
+                    (
+                        String::new(),
+                        "A site with this domain or path already exists.".to_string(),
+                    )
                 } else {
-                    "Database error. Please try again."
+                    ("Database error. Please try again.".to_string(), String::new())
                 }
             } else {
-                "Failed to create site."
+                ("Failed to create site.".to_string(), String::new())
             };
             Ok(AddSitePage::new(
                 true,
                 form.domain,
-                form.folder_path,
                 install_wp,
-                AddSiteErrors::default(),
-                msg.to_string(),
+                AddSiteErrors {
+                    folder_path: folder_error,
+                    ..Default::default()
+                },
+                err_msg,
             )
             .into_response())
         }

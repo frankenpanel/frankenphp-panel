@@ -14,15 +14,11 @@
             {% if errors.domain != "" %}
             <p class="mt-1.5 text-sm text-red-600" role="alert">{{ errors.domain }}</p>
             {% endif %}
+            <p class="mt-1.5 text-sm text-slate-500">Site files will be stored in <code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono">/var/www/&lt;your domain&gt;</code></p>
         </div>
-        <div>
-            <label for="folder_path" class="block text-sm font-medium text-slate-700 mb-1.5">Folder path</label>
-            <input type="text" id="folder_path" name="folder_path" value="{{ folder_path }}" placeholder="/var/www/example.com" required
-                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-shadow font-mono text-sm">
-            {% if errors.folder_path != "" %}
-            <p class="mt-1.5 text-sm text-red-600" role="alert">{{ errors.folder_path }}</p>
-            {% endif %}
-        </div>
+        {% if errors.folder_path != "" %}
+        <div class="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700" role="alert">{{ errors.folder_path }}</div>
+        {% endif %}
         <div class="flex items-center">
             <input type="checkbox" id="install_wordpress" name="install_wordpress" value="1" {% if install_wordpress %}checked{% endif %}
                 class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
