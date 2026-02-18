@@ -1,0 +1,28 @@
+[package]
+name = "frankenphp-panel"
+version = "0.1.0"
+edition = "2021"
+description = "Lightweight hosting panel for PHP/WordPress sites"
+
+[dependencies]
+axum = { version = "0.7", features = ["json", "form"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono"] }
+bcrypt = "0.16"
+serde = { version = "1", features = ["derive"] }
+askama = { version = "0.12", features = ["with-axum"] }
+askama_axum = "0.4"
+validator = { version = "0.18", features = ["derive"] }
+thiserror = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+mime_guess = "2"
+regex = "1"
+time = "0.3"
+axum-extra = { version = "0.9", features = ["typed-header", "cookie"] }
+bytes = "1"

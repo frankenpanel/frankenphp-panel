@@ -1,0 +1,8 @@
+/Users/sohailahmed/sites/frankenphp-panel/target/debug/deps/slab-17583d08d98d8bec.d: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/builder.rs
+
+/Users/sohailahmed/sites/frankenphp-panel/target/debug/deps/libslab-17583d08d98d8bec.rlib: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/builder.rs
+
+/Users/sohailahmed/sites/frankenphp-panel/target/debug/deps/libslab-17583d08d98d8bec.rmeta: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/builder.rs
+
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/lib.rs:
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/src/builder.rs:

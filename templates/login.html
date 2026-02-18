@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block body_class %}bg-slate-100 min-h-screen flex items-center justify-center text-slate-800 font-sans antialiased px-4{% endblock %}
+{% block main_class %}w-full max-w-md mx-auto px-4{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<div class="w-full bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200/80 p-8">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">FrankenPHP Panel</h1>
+        <p class="mt-1 text-sm text-slate-500">Sign in to manage your sites</p>
+    </div>
+    <form method="post" action="/login" class="space-y-5" id="login-form">
+        <input type="hidden" name="csrf" value="">
+        <div>
+            <label for="username" class="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+            <input type="text" id="username" name="username" autocomplete="username" value="{{ username }}" required autofocus
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-shadow">
+            {% if errors.username != "" %}
+            <p class="mt-1.5 text-sm text-red-600" role="alert">{{ errors.username }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-shadow">
+            {% if errors.password != "" %}
+            <p class="mt-1.5 text-sm text-red-600" role="alert">{{ errors.password }}</p>
+            {% endif %}
+        </div>
+        {% if error_message != "" %}
+        <div class="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700" role="alert">{{ error_message }}</div>
+        {% endif %}
+        <button type="submit" class="relative w-full flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-70" id="login-btn">
+            <span class="btn-text">Sign in</span>
+            <span class="btn-loading spinner" aria-hidden="true"></span>
+        </button>
+    </form>
+</div>
+{% endblock %}

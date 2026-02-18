@@ -1,0 +1,21 @@
+[Unit]
+Description=FrankenPHP Panel
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=panel
+Group=panel
+WorkingDirectory=/opt/frankenphp-panel
+EnvironmentFile=/opt/frankenphp-panel/.env
+ExecStart=/opt/frankenphp-panel/frankenphp-panel
+Restart=on-failure
+RestartSec=5
+
+# Security (optional: tighten as needed)
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
