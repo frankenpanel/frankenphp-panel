@@ -76,10 +76,12 @@ pub async fn create_site(
     if let Some(ref script) = state.config.site_create_script {
         let script_path = script.as_os_str();
         let domain = form.domain.trim().to_string();
+        let wp_arg = if install_wp { "1" } else { "0" };
         let output = Command::new("sudo")
             .arg(script_path)
             .arg(&domain)
             .arg(&folder_path)
+            .arg(wp_arg)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

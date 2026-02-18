@@ -1,60 +1,49 @@
 # FrankenPHP Panel
 
-Lightweight hosting panel for managing PHP and WordPress websites. Rust backend (port **2090**), PostgreSQL for panel metadata, HTML templates + CSS/JS served from the backend.
+Open-source panel to run **PHP and WordPress sites** on a server. One installer on a **fresh server** installs everything; you log in and add sites from the UI. The panel manages the rest: site folders, Caddy/FrankenPHP config, databases, and WordPress setup.
+
+## What you get
+
+- **Fresh server → one command** – The installer adds all required packages (PostgreSQL, MariaDB, FrankenPHP, Rust if needed), builds and installs the panel, and starts services. No manual DB or Caddy setup.
+- **Log in and add sites** – In the panel you enter a domain and optionally check “Install WordPress”. PHP sites go live immediately; WordPress sites get a database and WP files, then you complete the 5-minute setup in the browser.
+- **Panel manages everything** – Site roots (`/var/www/<domain>`), Caddy config, FrankenPHP reload, and (for WordPress) MariaDB database + user, WordPress download, and `wp-config.php`.
 
 ## Features
 
-- **Login** – Username/password, validation, loading state
-- **Dashboard** – List sites (status, path, WordPress), Add Site, Add Database, search/filter
-- **Add Site** – Domain, folder path, optional WordPress install; validation and success/error messages
-- **Add Database** – Site, DB name, user, password; validation (forbidden chars, length, strength)
-- **Website details** – Domain, folder, DB list, SSL status, Restart / Delete
+- **Login** – Username/password; credentials printed and saved at install
+- **Dashboard** – List sites, Add Site, Add Database, site details
+- **Add Site** – Domain only. **PHP:** panel creates folder + Caddy; site is live. **WordPress:** panel creates folder, Caddy, MariaDB DB, WP files, and wp-config; open the site to finish the wizard
+- **Website details** – Domain, path, DB list, Restart / Delete
 
-## Requirements
+## Install on a fresh server
 
-- Rust 1.70+
-- PostgreSQL (panel metadata)
-- (Optional) MariaDB/MySQL for site databases
-
-## Install on server
-
-Use the included installer to build and install the panel, create a system user, and optionally install a systemd service:
+Supported: **Ubuntu, Debian** (apt); **RHEL, Fedora** (dnf/yum). No need to install PostgreSQL, MariaDB, or FrankenPHP yourself—the installer does it.
 
 ```bash
-# Clone or upload the project to the server, then:
+# Clone or upload the project, then run as root:
 sudo ./install.sh
 ```
 
-Options:
-
-- `--prefix DIR` – Install directory (default: `/opt/frankenphp-panel`)
-- `--user USER` – User to run the panel (default: `panel`)
-- `--no-systemd` – Do not install systemd service
-- `--no-build` – Skip build; only copy files (binary must exist in `target/release/`)
-- `--skip-deps` – Do not install system packages (Rust, libpq, etc.)
-
 The installer will:
 
-1. Install dependencies (Debian/Ubuntu: `apt-get`; RHEL/Fedora: `dnf`/`yum`) and Rust if needed
-2. Build the panel with `cargo build --release`
-3. Create user `panel` (or `--user`), install binary + `static/` + `migrations/` under `--prefix`
-4. **If `.env` does not exist:** generate random database password, session secret, and admin password; create PostgreSQL user and database `panel` (if `psql`/postgres is available); write `.env`; run migrations; set admin password
-5. Install `frankenphp-panel.service` and run `systemctl daemon-reload`
-6. **Print and save** panel URL, username (`admin`), and generated password to the console and to `$PREFIX/.panel-credentials` (chmod 600)
+1. **Install system packages** – curl, build-essential, libssl, libpq, **PostgreSQL**, **MariaDB**, and (if needed) **Rust**
+2. **Build and install the panel** – binary, static files, migrations under `/opt/frankenphp-panel`
+3. **Create panel database** – PostgreSQL user and database `panel`, random passwords, `.env`, migrations, admin password
+4. **Install FrankenPHP** – Caddy+PHP binary, `/etc/caddy/Caddyfile`, systemd service on ports 80/443
+5. **Configure sudo** – panel user can run the site-create script (creates dirs, Caddy snippets, WordPress)
+6. **Start services** – panel (port 2090) and FrankenPHP (80/443)
+7. **Print credentials** – panel URL, username `admin`, and generated password (also saved to `/opt/frankenphp-panel/.panel-credentials`)
 
-After install:
+After install: **open the printed URL in your browser, log in with `admin` and the printed password, then add sites.** Save the password and remove the credentials file: `sudo rm /opt/frankenphp-panel/.panel-credentials`.
 
-1. If the installer created the DB and credentials, **save the printed URL, username, and password** (and remove the credentials file when done: `sudo rm /opt/frankenphp-panel/.panel-credentials`).
-2. If PostgreSQL was not available during install, create the database and user, edit `/opt/frankenphp-panel/.env`, then run migrations and set admin password:
-   ```bash
-   sudo -u postgres createuser -P panel
-   sudo -u postgres createdb -O panel panel
-   # Edit .env with DATABASE_URL and PANEL_SESSION_SECRET, then:
-   cd /opt/frankenphp-panel && sudo -u panel ./frankenphp-panel migrate
-   cd /opt/frankenphp-panel && sudo -u panel ./frankenphp-panel set-admin-password YOUR_PASSWORD
-   ```
-3. Start: `sudo systemctl start frankenphp-panel` and enable: `sudo systemctl enable frankenphp-panel`
-4. Open the panel at the URL shown (or put Caddy/nginx in front of `http://127.0.0.1:2090` for HTTPS)
+### Installer options (advanced)
+
+- `--prefix DIR` – Install directory (default: `/opt/frankenphp-panel`)
+- `--user USER` – System user for the panel (default: `panel`)
+- `--skip-caddy` – Do not install FrankenPHP (only if you already run Caddy/FrankenPHP yourself)
+- `--no-systemd` – Do not install systemd units
+- `--no-build` – Use existing binary in `target/release/`
+- `--skip-deps` – Do not install system packages or Rust (only if they are already installed)
 
 ## Setup (development)
 
@@ -105,12 +94,15 @@ The UI uses Tailwind via CDN (no build step). For production you may replace wit
 - Inputs validated (domain format, path uniqueness, DB identifiers, password length).
 - User content escaped in templates (XSS). Safe, predefined commands only for site/DB operations (to be wired to your FrankenPHP/Caddy/MariaDB tooling).
 
+## Add Site – managed by the panel
+
+- **PHP site:** Panel creates `/var/www/<domain>`, Caddy snippet, and reloads FrankenPHP. Site is live; add your PHP files via SFTP or deploy.
+- **WordPress site:** Panel does the same, then creates a MariaDB database and user, downloads WordPress, and writes `wp-config.php`. You open the site in the browser and complete the 5-minute setup (title, admin user, password). No manual DB or wp-config steps.
+
 ## TODO (backend integration)
 
-- Create site folder and Caddy block; reload FrankenPHP on add/delete site.
-- Optional WordPress install on “Add Site”.
-- Create MariaDB/MySQL DB and user when “Add Database” is used; store only metadata in PostgreSQL.
-- Optional: SSL status from Caddy; real site status (e.g. health check).
+- SSL status from Caddy; real site status (e.g. health check).
+- “Add Database” in panel to create MariaDB DB/user for existing sites.
 
 ## License
 

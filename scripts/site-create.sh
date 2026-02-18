@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# Create site directory and Caddy config, then reload Caddy.
-# Usage: sudo ./site-create.sh <domain> <site_path>
-# Example: sudo ./site-create.sh example.com /var/www/example.com
+# Create site directory and Caddy config, optionally install WordPress.
+# Usage: sudo ./site-create.sh <domain> <site_path> [install_wordpress]
+# Example: sudo ./site-create.sh example.com /var/www/example.com 1
 # Env (optional): WEB_USER, CADDY_SITES_DIR, CADDYFILE, CADDY_RELOAD_CMD
 
 set -e
 
 if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <domain> <site_path>" >&2
+  echo "Usage: $0 <domain> <site_path> [install_wordpress=0]" >&2
   exit 1
 fi
 
 DOMAIN="$1"
 SITE_PATH="$2"
+INSTALL_WORDPRESS="${3:-0}"
 WEB_USER="${WEB_USER:-www-data}"
 CADDY_SITES_DIR="${CADDY_SITES_DIR:-/etc/caddy/sites}"
 CADDYFILE="${CADDYFILE:-/etc/caddy/Caddyfile}"
@@ -23,10 +24,53 @@ if getent passwd "$WEB_USER" &>/dev/null; then
   chown "$WEB_USER:$WEB_USER" "$SITE_PATH"
 fi
 
-# Placeholder index.php so the site responds
-if [[ ! -f "$SITE_PATH/index.php" ]]; then
+# Placeholder index.php only for non-WordPress (WordPress will overwrite)
+if [[ "$INSTALL_WORDPRESS" != "1" ]] && [[ ! -f "$SITE_PATH/index.php" ]]; then
   echo '<?php echo "<!DOCTYPE html><html><head><title>' "$DOMAIN" '</title></head><body><h1>Welcome to '"$DOMAIN"'</h1><p>PHP is working.</p></body></html>";' > "$SITE_PATH/index.php"
   [[ -n "$WEB_USER" ]] && getent passwd "$WEB_USER" &>/dev/null && chown "$WEB_USER:$WEB_USER" "$SITE_PATH/index.php"
+fi
+
+# --- WordPress: create DB, download WP, write wp-config ---
+if [[ "$INSTALL_WORDPRESS" == "1" ]]; then
+  if ! command -v mysql &>/dev/null; then
+    echo "Error: mysql client not found. Install MariaDB/MySQL for WordPress." >&2
+    exit 1
+  fi
+  # Sanitize domain to DB name (max 64 chars for MySQL)
+  DB_NAME="wp_${DOMAIN//[^a-zA-Z0-9]/_}"
+  DB_NAME="${DB_NAME:0:64}"
+  DB_USER="${DB_NAME:0:32}"
+  DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
+  if mysql -e "CREATE DATABASE \`$DB_NAME\`; CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null; then
+    rm -f "$SITE_PATH/index.php"
+    curl -sSLf "https://wordpress.org/latest.tar.gz" | tar xz -C /tmp
+    mv /tmp/wordpress/* "$SITE_PATH/"
+    rm -rf /tmp/wordpress
+    SALTS=$(curl -sSL "https://api.wordpress.org/secret-key/1.1/salt/")
+    {
+      echo "<?php
+define('DB_NAME', '$DB_NAME');
+define('DB_USER', '$DB_USER');
+define('DB_PASSWORD', '$DB_PASS');
+define('DB_HOST', 'localhost');
+define('DB_CHARSET', 'utf8mb4');
+define('DB_COLLATE', '');
+"
+      echo "$SALTS"
+      echo "
+\$table_prefix = 'wp_';
+define('WP_DEBUG', false);
+if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }
+require_once ABSPATH . 'wp-settings.php';
+"
+    } > "$SITE_PATH/wp-config.php"
+    if getent passwd "$WEB_USER" &>/dev/null; then
+      chown -R "$WEB_USER:$WEB_USER" "$SITE_PATH"
+    fi
+    echo "WordPress installed. Open https://$DOMAIN to complete the 5-minute setup."
+  else
+    echo "Warning: Could not create MySQL database for WordPress. Install MariaDB and try again." >&2
+  fi
 fi
 
 # Caddy snippet: FrankenPHP php_server with root
@@ -43,15 +87,19 @@ $DOMAIN {
 }
 EOF
 
-# Reload Caddy
+# Reload Caddy/FrankenPHP so the new site is live
 if [[ -n "$CADDY_RELOAD_CMD" ]]; then
   eval "$CADDY_RELOAD_CMD"
-elif command -v caddy &>/dev/null && [[ -f "$CADDYFILE" ]]; then
-  caddy reload --config "$CADDYFILE" 2>/dev/null || true
+elif systemctl is-active --quiet frankenphp 2>/dev/null; then
+  systemctl reload frankenphp 2>/dev/null || true
 elif systemctl is-active --quiet caddy 2>/dev/null; then
   systemctl reload caddy 2>/dev/null || true
+elif command -v frankenphp &>/dev/null && [[ -f "$CADDYFILE" ]]; then
+  frankenphp reload --config "$CADDYFILE" --force 2>/dev/null || true
+elif command -v caddy &>/dev/null && [[ -f "$CADDYFILE" ]]; then
+  caddy reload --config "$CADDYFILE" 2>/dev/null || true
 else
-  echo "Warning: Caddy reload skipped (set CADDY_RELOAD_CMD or ensure caddy is running)." >&2
+  echo "Warning: Caddy/FrankenPHP reload skipped (install FrankenPHP or set CADDY_RELOAD_CMD)." >&2
 fi
 
 echo "Site created: $DOMAIN -> $SITE_PATH"

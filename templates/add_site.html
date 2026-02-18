@@ -19,10 +19,13 @@
         {% if errors.folder_path != "" %}
         <div class="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700" role="alert">{{ errors.folder_path }}</div>
         {% endif %}
-        <div class="flex items-center">
-            <input type="checkbox" id="install_wordpress" name="install_wordpress" value="1" {% if install_wordpress %}checked{% endif %}
-                class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-            <label for="install_wordpress" class="ml-2 block text-sm text-slate-700">Install WordPress</label>
+        <div>
+            <div class="flex items-center">
+                <input type="checkbox" id="install_wordpress" name="install_wordpress" value="1" {% if install_wordpress %}checked{% endif %}
+                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <label for="install_wordpress" class="ml-2 block text-sm text-slate-700">Install WordPress</label>
+            </div>
+            <p class="mt-1 text-sm text-slate-500">Creates the site, database, and WordPress files. Open the site in your browser to complete the 5-minute setup.</p>
         </div>
         {% if error_message != "" %}
         <div class="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700" role="alert">{{ error_message }}</div>

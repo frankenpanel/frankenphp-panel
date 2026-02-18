@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# FrankenPHP Panel – server installer
+# FrankenPHP Panel – full-stack installer for a fresh server
+#
+# Installs everything required so you can log in to the panel and add PHP/WordPress
+# sites; the panel manages site folders, Caddy config, FrankenPHP reload, and
+# (for WordPress) MariaDB DB + WP files behind the scenes.
+#
 # Usage: sudo ./install.sh [OPTIONS]
 # Options:
 #   --prefix DIR     Install directory (default: /opt/frankenphp-panel)
 #   --user USER      Run panel as this user (default: panel)
+#   --skip-caddy     Do not install FrankenPHP (only if you already have it)
 #   --no-systemd     Do not install systemd service
-#   --no-build       Do not build; only install files (binary must exist in target/release/)
-#   --skip-deps      Do not install system dependencies (Rust, PostgreSQL client libs)
+#   --no-build       Do not build; use existing binary in target/release/
+#   --skip-deps      Do not install system packages or Rust (only if already present)
 
 set -e
 
@@ -15,14 +21,16 @@ PANEL_USER="${PANEL_USER:-panel}"
 INSTALL_SYSTEMD=true
 SKIP_BUILD=false
 SKIP_DEPS=false
+SKIP_CADDY=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --prefix)    PREFIX="$2"; shift 2 ;;
-    --user)      PANEL_USER="$2"; shift 2 ;;
-    --no-systemd) INSTALL_SYSTEMD=false; shift ;;
-    --no-build)  SKIP_BUILD=true; shift ;;
-    --skip-deps) SKIP_DEPS=true; shift ;;
+    --prefix)      PREFIX="$2"; shift 2 ;;
+    --user)        PANEL_USER="$2"; shift 2 ;;
+    --skip-caddy)  SKIP_CADDY=true; shift ;;
+    --no-systemd)  INSTALL_SYSTEMD=false; shift ;;
+    --no-build)    SKIP_BUILD=true; shift ;;
+    --skip-deps)   SKIP_DEPS=true; shift ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -41,12 +49,12 @@ if [[ "$SKIP_DEPS" != true ]]; then
   if command -v apt-get &>/dev/null; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
-    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql postgresql-client || true
+    apt-get install -y -qq curl build-essential pkg-config libssl-dev libpq-dev postgresql postgresql-client mariadb-server || true
   elif command -v dnf &>/dev/null; then
-    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server || true
+    dnf install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server || true
     if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   elif command -v yum &>/dev/null; then
-    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server || true
+    yum install -y curl gcc gcc-c++ make pkg-config openssl-devel postgresql-devel postgresql postgresql-server mariadb-server || true
     if command -v postgresql-setup &>/dev/null; then postgresql-setup --initdb 2>/dev/null || true; fi
   else
     echo "Warning: Unsupported package manager. Install manually: curl, build-essential, libssl-dev, libpq-dev, postgresql, postgresql-client"
@@ -62,6 +70,9 @@ if [[ "$SKIP_DEPS" != true ]]; then
       if sudo -u postgres psql -c '\q' 2>/dev/null; then break; fi
       sleep 1
     done
+    echo "==> Starting MariaDB (for WordPress sites)..."
+    systemctl start mariadb 2>/dev/null || systemctl start mysql 2>/dev/null || true
+    systemctl enable mariadb 2>/dev/null || systemctl enable mysql 2>/dev/null || true
   fi
 
   if ! command -v cargo &>/dev/null; then
@@ -112,6 +123,9 @@ cp -r "$SCRIPT_DIR/static/"* "$PREFIX/static/"
 cp "$SCRIPT_DIR/migrations/"*.sql "$PREFIX/migrations/"
 if [[ -f "$SCRIPT_DIR/scripts/site-create.sh" ]]; then
   install -m 755 "$SCRIPT_DIR/scripts/site-create.sh" "$PREFIX/scripts/site-create.sh"
+fi
+if [[ -f "$SCRIPT_DIR/scripts/install-frankenphp.sh" ]]; then
+  install -m 755 "$SCRIPT_DIR/scripts/install-frankenphp.sh" "$PREFIX/scripts/install-frankenphp.sh"
 fi
 
 # --- Generate secrets and .env ---
@@ -209,6 +223,12 @@ if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
   echo "==> Created /etc/caddy/sites (Caddy include dir for new sites)"
 fi
 
+# --- Install FrankenPHP (Caddy+PHP) so panel-created sites are served on 80/443 ---
+if [[ "$SKIP_CADDY" != true ]] && [[ -f "$SCRIPT_DIR/scripts/install-frankenphp.sh" ]]; then
+  echo "==> Installing FrankenPHP (sites will be served on ports 80/443)..."
+  bash "$SCRIPT_DIR/scripts/install-frankenphp.sh"
+fi
+
 # --- Firewall (allow port 2090 if ufw is active) ---
 if command -v ufw &>/dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
   echo "==> Allowing port 2090 in firewall (ufw)..."
@@ -288,7 +308,11 @@ else
 fi
 if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
   echo ""
-  echo "  Add Site creates /var/www/<domain> and Caddy config. Caddyfile must include: import /etc/caddy/sites/*"
+  if [[ "$SKIP_CADDY" != true ]]; then
+    echo "  Add Site creates /var/www/<domain>, Caddy config, and reloads FrankenPHP – sites go live on ports 80/443."
+  else
+    echo "  Add Site creates /var/www/<domain> and Caddy config. To serve sites, run: sudo $PREFIX/scripts/install-frankenphp.sh"
+  fi
 fi
 if [[ -z "$ADMIN_PASS" ]]; then
   echo ""
