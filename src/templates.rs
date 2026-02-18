@@ -67,6 +67,7 @@ pub struct AddDatabasePage {
     pub site_id: i32,
     pub database_name: String,
     pub username: String,
+    pub privileges: String,
     pub errors: AddDatabaseErrors,
     pub error_message: String,
 }
@@ -139,6 +140,7 @@ impl AddDatabasePage {
         site_id: i32,
         database_name: String,
         username: String,
+        privileges: String,
         errors: AddDatabaseErrors,
         error_message: String,
     ) -> Self {
@@ -148,6 +150,7 @@ impl AddDatabasePage {
             site_id,
             database_name,
             username,
+            privileges,
             errors,
             error_message,
         }

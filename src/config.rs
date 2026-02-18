@@ -10,6 +10,10 @@ pub struct Config {
     pub site_create_script: Option<PathBuf>,
     /// If set, run this script (via sudo) when deleting a site: script <domain> <folder_path> [db_name db_user]...
     pub site_delete_script: Option<PathBuf>,
+    /// If set, run when creating a DB: script <db_name> <db_user> <db_password> <privileges>
+    pub db_create_script: Option<PathBuf>,
+    /// If set, run when deleting a DB: script <db_name> <db_user>
+    pub db_delete_script: Option<PathBuf>,
     /// Optional server IP/hostname shown on site detail (e.g. PANEL_SERVER_IP=203.0.113.1)
     pub server_ip: Option<String>,
     /// Web user that owns site files (default www-data). Shown on site detail.
@@ -26,6 +30,14 @@ impl Config {
             .ok()
             .map(PathBuf::from)
             .filter(|p| p.exists());
+        let db_create_script = std::env::var("DB_CREATE_SCRIPT")
+            .ok()
+            .map(PathBuf::from)
+            .filter(|p| p.exists());
+        let db_delete_script = std::env::var("DB_DELETE_SCRIPT")
+            .ok()
+            .map(PathBuf::from)
+            .filter(|p| p.exists());
         Self {
             bind: std::env::var("PANEL_BIND")
                 .ok()
@@ -37,6 +49,8 @@ impl Config {
                 .unwrap_or_else(|_| "change-me-in-production-min-32-chars!!".to_string()),
             site_create_script,
             site_delete_script,
+            db_create_script,
+            db_delete_script,
             server_ip: std::env::var("PANEL_SERVER_IP").ok().filter(|s| !s.is_empty()),
             web_user: std::env::var("PANEL_WEB_USER").ok().filter(|s| !s.is_empty()),
         }

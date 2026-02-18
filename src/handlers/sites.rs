@@ -279,7 +279,7 @@ pub async fn site_detail(
     .ok_or(AppError::Validation("Site not found.".to_string()))?;
 
     let databases = sqlx::query_as::<_, crate::models::SiteDatabase>(
-        "SELECT id, site_id, db_name, db_user, created_at FROM site_databases WHERE site_id = $1",
+        "SELECT id, site_id, db_name, db_user, privileges, created_at FROM site_databases WHERE site_id = $1",
     )
     .bind(id)
     .fetch_all(&state.pool)
@@ -345,7 +345,7 @@ pub async fn delete_site(
     .ok_or(AppError::Validation("Site not found.".into()))?;
 
     let databases = sqlx::query_as::<_, crate::models::SiteDatabase>(
-        "SELECT id, site_id, db_name, db_user, created_at FROM site_databases WHERE site_id = $1",
+        "SELECT id, site_id, db_name, db_user, privileges, created_at FROM site_databases WHERE site_id = $1",
     )
     .bind(id)
     .fetch_all(&state.pool)

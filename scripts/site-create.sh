@@ -53,8 +53,8 @@ if [[ "$INSTALL_WORDPRESS" == "1" ]]; then
   DB_NAME="${DB_NAME:0:64}"
   DB_USER="${DB_NAME:0:32}"
   DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
-  # Create user for both localhost (socket) and 127.0.0.1 (TCP) so PHP can connect either way
-  MYSQL_CMD="CREATE DATABASE \`$DB_NAME\`; CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'; CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1'; FLUSH PRIVILEGES;"
+  # Create DB and user if not exists (idempotent: safe when DB/user already exist from a previous attempt)
+  MYSQL_CMD="CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`; CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'; CREATE USER IF NOT EXISTS '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1'; FLUSH PRIVILEGES;"
   MYSQL_ERR=$(mktemp)
   if [[ -n "${MYSQL_ROOT_PASSWORD:-}" ]]; then
     export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"

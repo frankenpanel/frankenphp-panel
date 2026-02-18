@@ -54,6 +54,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/sites/:id/delete", post(handlers::delete_site))
         .route("/databases/new", get(handlers::new_database))
         .route("/databases", post(handlers::create_database))
+        .route("/databases/:id/delete", post(handlers::delete_database))
         .layer(middleware::from_fn_with_state(state.clone(), frankenphp_panel::auth::require_auth))
         .with_state(state.clone());
 

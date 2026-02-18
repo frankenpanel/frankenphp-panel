@@ -34,6 +34,7 @@
   if (query.created === '1') showToast('Site created successfully.', 'success');
   if (query.deleted === '1') showToast('Site deleted.', 'success');
   if (query.db_created === '1') showToast('Database created successfully.', 'success');
+  if (query.db_deleted === '1') showToast('Database deleted.', 'success');
   if (query.restarted === '1') showToast('Site restart requested.', 'success');
 
   var loginForm = document.getElementById('login-form');

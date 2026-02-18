@@ -39,6 +39,7 @@ pub struct SiteDatabase {
     pub site_id: i32,
     pub db_name: String,
     pub db_user: String,
+    pub privileges: String,
     pub created_at: DateTime<Utc>,
 }
 

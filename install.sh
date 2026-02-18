@@ -164,6 +164,8 @@ PANEL_SESSION_SECRET=$SESSION_SECRET
 PANEL_BIND=0.0.0.0:2090
 SITE_CREATE_SCRIPT=$PREFIX/scripts/site-create.sh
 SITE_DELETE_SCRIPT=$PREFIX/scripts/site-delete.sh
+DB_CREATE_SCRIPT=$PREFIX/scripts/db-create.sh
+DB_DELETE_SCRIPT=$PREFIX/scripts/db-delete.sh
 EOF
   chmod 600 "$PREFIX/.env"
   echo "==> Wrote $PREFIX/.env with generated values"
@@ -228,9 +230,11 @@ if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
   {
     echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-create.sh"
     [[ -f "$PREFIX/scripts/site-delete.sh" ]] && echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-delete.sh"
+    [[ -f "$PREFIX/scripts/db-create.sh" ]] && echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/db-create.sh"
+    [[ -f "$PREFIX/scripts/db-delete.sh" ]] && echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/db-delete.sh"
   } > "$SUDOERS_FILE"
   chmod 440 "$SUDOERS_FILE"
-  echo "==> Configured sudoers: $PANEL_USER may run site-create.sh and site-delete.sh"
+  echo "==> Configured sudoers: $PANEL_USER may run site-create, site-delete, db-create, db-delete scripts"
   mkdir -p /etc/caddy/sites
   echo "==> Created /etc/caddy/sites (Caddy include dir for new sites)"
 fi

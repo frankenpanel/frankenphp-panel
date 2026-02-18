@@ -45,6 +45,15 @@
             <p class="mt-1.5 text-sm text-red-600" role="alert">{{ errors.password }}</p>
             {% endif %}
         </div>
+        <div>
+            <label for="privileges" class="block text-sm font-medium text-slate-700 mb-1.5">Permissions</label>
+            <select id="privileges" name="privileges"
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-shadow bg-white">
+                <option value="full" {% if privileges == "full" %}selected{% endif %}>Full access (read, write, create, drop)</option>
+                <option value="readonly" {% if privileges == "readonly" %}selected{% endif %}>Read only (SELECT)</option>
+            </select>
+            <p class="mt-1 text-xs text-slate-500">Assign privileges for this database user.</p>
+        </div>
         {% if error_message != "" %}
         <div class="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700" role="alert">{{ error_message }}</div>
         {% endif %}
