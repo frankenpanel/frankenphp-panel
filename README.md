@@ -99,6 +99,15 @@ The UI uses Tailwind via CDN (no build step). For production you may replace wit
 - **PHP site:** Panel creates `/var/www/<domain>`, Caddy snippet, and reloads FrankenPHP. Site is live; add your PHP files via SFTP or deploy.
 - **WordPress site:** Panel does the same, then creates a MariaDB database and user, downloads WordPress, and writes `wp-config.php`. You open the site in the browser and complete the 5-minute setup (title, admin user, password). No manual DB or wp-config steps.
 
+## WordPress: database not created
+
+If you add a WordPress site but the database is not created:
+
+1. **MariaDB must be running** – The script checks this and will fail with a clear error if not. Start it: `sudo systemctl start mariadb` (or `mysql` on some systems).
+2. **Root password** – By default the script connects as `mysql -u root` (no password). If you have set a root password (e.g. via `mysql_secure_installation`), set `MYSQL_ROOT_PASSWORD` in the environment that runs the panel (e.g. in the panel’s systemd unit) so the site-create script can create the WordPress database.
+
+If the script fails, the panel will show the MySQL/MariaDB error message so you can fix the cause.
+
 ## WordPress debug and fixing issues
 
 WordPress sites installed by the panel have **debug logging enabled by default** so you can fix errors without showing them to visitors:

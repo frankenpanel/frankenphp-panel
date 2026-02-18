@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Create site directory and Caddy config, optionally install WordPress.
-# Usage: sudo ./site-create.sh <domain> <site_path> [install_wordpress] [wp_title] [wp_admin_user] [wp_admin_password] [wp_admin_email]
+# Usage: sudo ./site-create.sh <domain> <site_path> [install_wordpress] [wp_title] [wp_admin_user] [wp_admin_password] [wp_admin_email] [php_version]
 # When install_wordpress=1, args 4–7 are WordPress site title, admin user, password, email (for wp core install).
+# Optional: set MYSQL_ROOT_PASSWORD if MariaDB root has a password (e.g. in panel’s environment).
 
 set -e
 
@@ -40,13 +41,33 @@ if [[ "$INSTALL_WORDPRESS" == "1" ]]; then
     echo "Error: mysql client not found. Install MariaDB/MySQL for WordPress." >&2
     exit 1
   fi
+  # MariaDB/MySQL: ensure service is running (common cause of "DB not created")
+  if systemctl is-active --quiet mariadb 2>/dev/null || systemctl is-active --quiet mysql 2>/dev/null; then
+    :
+  else
+    echo "Error: MariaDB/MySQL is not running. Start it with: sudo systemctl start mariadb" >&2
+    exit 1
+  fi
   # Sanitize domain to DB name (max 64 chars for MySQL)
   DB_NAME="wp_${DOMAIN//[^a-zA-Z0-9]/_}"
   DB_NAME="${DB_NAME:0:64}"
   DB_USER="${DB_NAME:0:32}"
   DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
-  if mysql -e "CREATE DATABASE \`$DB_NAME\`; CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null; then
-    rm -f "$SITE_PATH/index.php"
+  MYSQL_CMD="CREATE DATABASE \`$DB_NAME\`; CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
+  MYSQL_ERR=$(mktemp)
+  if [[ -n "${MYSQL_ROOT_PASSWORD:-}" ]]; then
+    export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+  fi
+  if ! mysql -u root -e "$MYSQL_CMD" 2>"$MYSQL_ERR"; then
+    echo "Error: Could not create MySQL database for WordPress." >&2
+    cat "$MYSQL_ERR" >&2
+    rm -f "$MYSQL_ERR"
+    [[ -n "${MYSQL_PWD:-}" ]] && unset MYSQL_PWD
+    exit 1
+  fi
+  rm -f "$MYSQL_ERR"
+  [[ -n "${MYSQL_PWD:-}" ]] && unset MYSQL_PWD
+  rm -f "$SITE_PATH/index.php"
     curl -sSLf "https://wordpress.org/latest.tar.gz" | tar xz -C /tmp
     mv /tmp/wordpress/* "$SITE_PATH/"
     rm -rf /tmp/wordpress
@@ -89,9 +110,6 @@ require_once ABSPATH . 'wp-settings.php';
     else
       echo "WordPress files and database are ready. Open http://${DOMAIN}/wp-admin/install.php to complete the 5-minute setup."
     fi
-  else
-    echo "Warning: Could not create MySQL database for WordPress. Install MariaDB and try again." >&2
-  fi
 fi
 
 # Caddy snippet: FrankenPHP php_server with root
