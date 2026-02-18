@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/sohailahmed/sites/frankenphp-panel/target/release/build/mime_guess-c039be467967dfaf/out/mime_types_generated.rs

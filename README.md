@@ -38,19 +38,23 @@ The installer will:
 1. Install dependencies (Debian/Ubuntu: `apt-get`; RHEL/Fedora: `dnf`/`yum`) and Rust if needed
 2. Build the panel with `cargo build --release`
 3. Create user `panel` (or `--user`), install binary + `static/` + `migrations/` under `--prefix`
-4. Create `.env` from `scripts/env.example` if missing (you must edit and set `DATABASE_URL` and `PANEL_SESSION_SECRET`)
+4. **If `.env` does not exist:** generate random database password, session secret, and admin password; create PostgreSQL user and database `panel` (if `psql`/postgres is available); write `.env`; run migrations; set admin password
 5. Install `frankenphp-panel.service` and run `systemctl daemon-reload`
+6. **Print and save** panel URL, username (`admin`), and generated password to the console and to `$PREFIX/.panel-credentials` (chmod 600)
 
 After install:
 
-1. Create PostgreSQL database and user (if not already):
+1. If the installer created the DB and credentials, **save the printed URL, username, and password** (and remove the credentials file when done: `sudo rm /opt/frankenphp-panel/.panel-credentials`).
+2. If PostgreSQL was not available during install, create the database and user, edit `/opt/frankenphp-panel/.env`, then run migrations and set admin password:
    ```bash
    sudo -u postgres createuser -P panel
    sudo -u postgres createdb -O panel panel
+   # Edit .env with DATABASE_URL and PANEL_SESSION_SECRET, then:
+   cd /opt/frankenphp-panel && sudo -u panel ./frankenphp-panel migrate
+   cd /opt/frankenphp-panel && sudo -u panel ./frankenphp-panel set-admin-password YOUR_PASSWORD
    ```
-2. Edit `/opt/frankenphp-panel/.env` and set `DATABASE_URL` and `PANEL_SESSION_SECRET` (e.g. `openssl rand -base64 32`)
 3. Start: `sudo systemctl start frankenphp-panel` and enable: `sudo systemctl enable frankenphp-panel`
-4. Put Caddy (or nginx) in front of `http://127.0.0.1:2090` for TLS and public access
+4. Open the panel at the URL shown (or put Caddy/nginx in front of `http://127.0.0.1:2090` for HTTPS)
 
 ## Setup (development)
 

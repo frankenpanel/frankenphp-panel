@@ -9,6 +9,20 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() >= 2 {
+        match args[1].as_str() {
+            "set-admin-password" => {
+                let password = args
+                    .get(2)
+                    .ok_or_else(|| anyhow::anyhow!("Usage: frankenphp-panel set-admin-password <password>"))?;
+                return run_set_admin_password(password).await;
+            }
+            "migrate" => return run_migrate_only().await,
+            _ => {}
+        }
+    }
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
@@ -49,5 +63,28 @@ async fn main() -> anyhow::Result<()> {
         app,
     )
     .await?;
+    Ok(())
+}
+
+async fn run_migrate_only() -> anyhow::Result<()> {
+    let config = Config::from_env();
+    let pool = db::create_pool(&config.database_url).await?;
+    db::run_migrations(&pool).await?;
+    println!("Migrations completed.");
+    Ok(())
+}
+
+async fn run_set_admin_password(password: &str) -> anyhow::Result<()> {
+    let config = Config::from_env();
+    let pool = db::create_pool(&config.database_url).await?;
+    let hash = bcrypt::hash(password, 12).map_err(|e| anyhow::anyhow!("bcrypt: {}", e))?;
+    let rows = sqlx::query("UPDATE users SET password_hash = $1 WHERE username = 'admin'")
+        .bind(&hash)
+        .execute(&pool)
+        .await?;
+    if rows.rows_affected() == 0 {
+        anyhow::bail!("No user 'admin' found. Run migrations first.");
+    }
+    println!("Admin password updated.");
     Ok(())
 }

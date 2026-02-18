@@ -1,0 +1,14 @@
+/Users/sohailahmed/sites/frankenphp-panel/target/release/deps/serde-0ee004c7a3c36d43.d: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/sohailahmed/sites/frankenphp-panel/target/release/build/serde-e07b84f9e6c51830/out/private.rs
+
+/Users/sohailahmed/sites/frankenphp-panel/target/release/deps/libserde-0ee004c7a3c36d43.rlib: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/sohailahmed/sites/frankenphp-panel/target/release/build/serde-e07b84f9e6c51830/out/private.rs
+
+/Users/sohailahmed/sites/frankenphp-panel/target/release/deps/libserde-0ee004c7a3c36d43.rmeta: /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/sohailahmed/sites/frankenphp-panel/target/release/build/serde-e07b84f9e6c51830/out/private.rs
+
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/sohailahmed/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/sohailahmed/sites/frankenphp-panel/target/release/build/serde-e07b84f9e6c51830/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/sohailahmed/sites/frankenphp-panel/target/release/build/serde-e07b84f9e6c51830/out
