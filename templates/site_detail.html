@@ -23,6 +23,10 @@
                 <dd class="mt-0.5"><code class="text-sm text-slate-700 bg-slate-100 px-2 py-1 rounded font-mono break-all">{{ site.folder_path }}</code></dd>
             </div>
             <div>
+                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">PHP version</dt>
+                <dd class="mt-0.5 text-slate-700">{{ site.php_version }}</dd>
+            </div>
+            <div>
                 <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">WordPress</dt>
                 <dd class="mt-0.5 text-slate-700">{% if site.wordpress_installed %}Installed{% else %}No{% endif %}</dd>
             </div>

@@ -93,11 +93,11 @@
     btn.addEventListener('click', function () {
       var id = btn.getAttribute('data-id');
       var domain = btn.getAttribute('data-domain') || 'this site';
-      var msg = 'Delete site “‘ + domain + '”?\n\n' +
+      var msg = 'Delete site "' + domain + '"?\n\n' +
         'This will permanently:\n' +
-        '• Delete all files and folders for this site (e.g. /var/www/' + domain + ')\n' +
-        '• Remove the Caddy/FrankenPHP config for this site\n' +
-        '• Delete all databases and database users associated with this site\n\n' +
+        '- Delete all files and folders for this site (e.g. /var/www/' + domain + ')\n' +
+        '- Remove the Caddy/FrankenPHP config for this site\n' +
+        '- Delete all databases and database users associated with this site\n\n' +
         'This cannot be undone.';
       if (!confirm(msg)) return;
       var form = document.createElement('form');

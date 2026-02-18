@@ -58,6 +58,7 @@ pub async fn new_site(
         true,
         String::new(),
         false,
+        "8.2".to_string(),
         String::new(),
         String::new(),
         String::new(),
@@ -85,11 +86,18 @@ pub async fn create_site(
         }
     }
     let (wp_title, wp_admin_user, wp_admin_email) = wp_form_values(&form);
+    let php_version = form
+        .php_version
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("8.2")
+        .to_string();
     if !errors.domain.is_empty() {
         return Ok(AddSitePage::new(
             true,
             form.domain,
             form.install_wordpress.as_deref() == Some("1"),
+            php_version.clone(),
             wp_title,
             wp_admin_user,
             wp_admin_email,
@@ -104,6 +112,7 @@ pub async fn create_site(
             true,
             form.domain,
             form.install_wordpress.as_deref() == Some("1"),
+            php_version.clone(),
             wp_title.clone(),
             wp_admin_user.clone(),
             wp_admin_email.clone(),
@@ -124,6 +133,7 @@ pub async fn create_site(
                 true,
                 form.domain,
                 true,
+                php_version.clone(),
                 wp_title,
                 wp_admin_user,
                 wp_admin_email,
@@ -154,7 +164,10 @@ pub async fn create_site(
                 .arg(form.wp_admin_user.as_deref().unwrap_or(""))
                 .arg(form.wp_admin_password.as_deref().unwrap_or(""))
                 .arg(form.wp_admin_email.as_deref().unwrap_or(""));
+        } else {
+            cmd.arg("").arg("").arg("").arg("");
         }
+        cmd.arg(&php_version);
         let output = cmd.output().await;
 
         match output {
@@ -172,6 +185,7 @@ pub async fn create_site(
                     true,
                     form.domain,
                     install_wp,
+                    php_version.clone(),
                     wp_title,
                     wp_admin_user,
                     wp_admin_email,
@@ -189,6 +203,7 @@ pub async fn create_site(
                     true,
                     form.domain,
                     install_wp,
+                    php_version.clone(),
                     wp_title,
                     wp_admin_user,
                     wp_admin_email,
@@ -205,12 +220,13 @@ pub async fn create_site(
     }
 
     let result = sqlx::query(
-        "INSERT INTO sites (domain, folder_path, wordpress_installed, user_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO sites (domain, folder_path, wordpress_installed, user_id, php_version) VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(&form.domain)
     .bind(&folder_path)
     .bind(install_wp)
     .bind(user_id.value())
+    .bind(&php_version)
     .execute(&state.pool)
     .await;
 
@@ -233,6 +249,7 @@ pub async fn create_site(
                 true,
                 form.domain,
                 install_wp,
+                php_version,
                 wp_title,
                 wp_admin_user,
                 wp_admin_email,
@@ -253,7 +270,7 @@ pub async fn site_detail(
     Path(id): Path<i32>,
 ) -> Result<Response> {
     let site = sqlx::query_as::<_, crate::models::Site>(
-        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at FROM sites WHERE id = $1 AND user_id = $2",
+        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE id = $1 AND user_id = $2",
     )
     .bind(id)
     .bind(user_id.value())

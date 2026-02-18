@@ -18,6 +18,7 @@ pub struct Site {
     pub wordpress_installed: bool,
     pub user_id: i32,
     pub created_at: DateTime<Utc>,
+    pub php_version: String,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -29,6 +30,7 @@ pub struct SiteWithStatus {
     pub user_id: i32,
     pub created_at: DateTime<Utc>,
     pub status: Option<String>,
+    pub php_version: String,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -53,6 +55,8 @@ pub struct AddSiteForm {
     #[validate(length(min = 1, message = "Domain is required"))]
     pub domain: String,
     pub install_wordpress: Option<String>,
+    /// PHP version (e.g. 8.1, 8.2, 8.3)
+    pub php_version: Option<String>,
     /// WordPress site title (required when install_wordpress=1)
     pub wp_title: Option<String>,
     /// WordPress admin username (required when install_wordpress=1)

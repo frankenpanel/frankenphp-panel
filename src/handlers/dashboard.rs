@@ -9,7 +9,7 @@ pub async fn dashboard(
     Extension(user_id): Extension<UserId>,
 ) -> impl axum::response::IntoResponse {
     let sites: Vec<DashboardSiteRow> = sqlx::query_as::<_, crate::models::SiteWithStatus>(
-        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, NULL::text AS status FROM sites WHERE user_id = $1 ORDER BY domain",
+        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, NULL::text AS status, php_version FROM sites WHERE user_id = $1 ORDER BY domain",
     )
     .bind(user_id.value())
     .fetch_all(&state.pool)
@@ -24,6 +24,7 @@ pub async fn dashboard(
         user_id: s.user_id,
         created_at: s.created_at,
         status: s.status.unwrap_or_else(|| "unknown".to_string()),
+        php_version: s.php_version,
     })
     .collect();
 

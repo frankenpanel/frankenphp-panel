@@ -19,6 +19,7 @@
                     <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Domain</th>
                     <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Path</th>
                     <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">PHP</th>
                     <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">WordPress</th>
                     <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -40,6 +41,7 @@
                             {% if site.status == "unknown" %}—{% else %}{{ site.status }}{% endif %}
                         </span>
                     </td>
+                    <td class="px-4 py-3.5 text-sm text-slate-600"><span class="font-mono">{{ site.php_version }}</span></td>
                     <td class="px-4 py-3.5 text-sm text-slate-600">{% if site.wordpress_installed %}Yes{% else %}—{% endif %}</td>
                     <td class="px-4 py-3.5 text-right">
                         <a href="/sites/{{ site.id }}" class="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">Details</a>

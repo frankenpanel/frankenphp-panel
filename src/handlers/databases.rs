@@ -22,7 +22,7 @@ pub async fn new_database(
     Query(q): Query<NewDbQuery>,
 ) -> Result<impl IntoResponse> {
     let sites = sqlx::query_as::<_, crate::models::Site>(
-        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at FROM sites WHERE user_id = $1 ORDER BY domain",
+        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE user_id = $1 ORDER BY domain",
     )
     .bind(user_id.value())
     .fetch_all(&state.pool)
@@ -81,7 +81,7 @@ pub async fn create_database(
         || !errors.password.is_empty()
     {
         let sites = sqlx::query_as::<_, crate::models::Site>(
-            "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at FROM sites WHERE user_id = $1 ORDER BY domain",
+            "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE user_id = $1 ORDER BY domain",
         )
         .bind(user_id.value())
         .fetch_all(&state.pool)
@@ -105,7 +105,7 @@ pub async fn create_database(
         .await?;
     if site_exists.is_none() {
         let sites = sqlx::query_as::<_, crate::models::Site>(
-            "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at FROM sites WHERE user_id = $1 ORDER BY domain",
+            "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE user_id = $1 ORDER BY domain",
         )
         .bind(user_id.value())
         .fetch_all(&state.pool)
@@ -147,7 +147,7 @@ pub async fn create_database(
                 "Failed to create database."
             };
             let sites = sqlx::query_as::<_, crate::models::Site>(
-                "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at FROM sites WHERE user_id = $1 ORDER BY domain",
+                "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE user_id = $1 ORDER BY domain",
             )
             .bind(user_id.value())
             .fetch_all(&state.pool)

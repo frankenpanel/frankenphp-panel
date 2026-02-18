@@ -11,6 +11,7 @@ pub struct DashboardSiteRow {
     pub user_id: i32,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub status: String,
+    pub php_version: String,
 }
 
 #[derive(Template)]
@@ -40,6 +41,7 @@ pub struct AddSitePage {
     pub logged_in: bool,
     pub domain: String,
     pub install_wordpress: bool,
+    pub php_version: String,
     pub wp_title: String,
     pub wp_admin_user: String,
     pub wp_admin_email: String,
@@ -105,6 +107,7 @@ impl AddSitePage {
         logged_in: bool,
         domain: String,
         install_wordpress: bool,
+        php_version: String,
         wp_title: String,
         wp_admin_user: String,
         wp_admin_email: String,
@@ -115,6 +118,7 @@ impl AddSitePage {
             logged_in,
             domain,
             install_wordpress,
+            php_version,
             wp_title,
             wp_admin_user,
             wp_admin_email,
