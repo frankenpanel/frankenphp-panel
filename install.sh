@@ -163,6 +163,7 @@ DATABASE_URL=$DATABASE_URL
 PANEL_SESSION_SECRET=$SESSION_SECRET
 PANEL_BIND=0.0.0.0:2090
 SITE_CREATE_SCRIPT=$PREFIX/scripts/site-create.sh
+SITE_DELETE_SCRIPT=$PREFIX/scripts/site-delete.sh
 EOF
   chmod 600 "$PREFIX/.env"
   echo "==> Wrote $PREFIX/.env with generated values"
@@ -221,12 +222,15 @@ EOF
   fi
 fi
 
-# --- Sudoers: allow panel user to run site-create.sh (creates /var/www, Caddy config, reload) ---
+# --- Sudoers: allow panel user to run site-create.sh and site-delete.sh ---
 if [[ -f "$PREFIX/scripts/site-create.sh" ]]; then
-  SUDOERS_FILE="/etc/sudoers.d/frankenphp-panel-site-create"
-  echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-create.sh" > "$SUDOERS_FILE"
+  SUDOERS_FILE="/etc/sudoers.d/frankenphp-panel-scripts"
+  {
+    echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-create.sh"
+    [[ -f "$PREFIX/scripts/site-delete.sh" ]] && echo "$PANEL_USER ALL=(root) NOPASSWD: $PREFIX/scripts/site-delete.sh"
+  } > "$SUDOERS_FILE"
   chmod 440 "$SUDOERS_FILE"
-  echo "==> Configured sudoers: $PANEL_USER may run site-create.sh"
+  echo "==> Configured sudoers: $PANEL_USER may run site-create.sh and site-delete.sh"
   mkdir -p /etc/caddy/sites
   echo "==> Created /etc/caddy/sites (Caddy include dir for new sites)"
 fi

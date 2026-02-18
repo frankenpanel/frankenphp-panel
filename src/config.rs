@@ -8,6 +8,8 @@ pub struct Config {
     pub session_secret: String,
     /// If set, run this script (via sudo) when creating a site: script <domain> <folder_path>
     pub site_create_script: Option<PathBuf>,
+    /// If set, run this script (via sudo) when deleting a site: script <domain> <folder_path> [db_name db_user]...
+    pub site_delete_script: Option<PathBuf>,
     /// Optional server IP/hostname shown on site detail (e.g. PANEL_SERVER_IP=203.0.113.1)
     pub server_ip: Option<String>,
     /// Web user that owns site files (default www-data). Shown on site detail.
@@ -17,6 +19,10 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Self {
         let site_create_script = std::env::var("SITE_CREATE_SCRIPT")
+            .ok()
+            .map(PathBuf::from)
+            .filter(|p| p.exists());
+        let site_delete_script = std::env::var("SITE_DELETE_SCRIPT")
             .ok()
             .map(PathBuf::from)
             .filter(|p| p.exists());
@@ -30,6 +36,7 @@ impl Config {
             session_secret: std::env::var("PANEL_SESSION_SECRET")
                 .unwrap_or_else(|_| "change-me-in-production-min-32-chars!!".to_string()),
             site_create_script,
+            site_delete_script,
             server_ip: std::env::var("PANEL_SERVER_IP").ok().filter(|s| !s.is_empty()),
             web_user: std::env::var("PANEL_WEB_USER").ok().filter(|s| !s.is_empty()),
         }

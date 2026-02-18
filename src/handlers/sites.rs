@@ -335,6 +335,49 @@ pub async fn delete_site(
     Extension(user_id): Extension<UserId>,
     Path(id): Path<i32>,
 ) -> Result<Response> {
+    let site = sqlx::query_as::<_, crate::models::Site>(
+        "SELECT id, domain, folder_path, wordpress_installed, user_id, created_at, php_version FROM sites WHERE id = $1 AND user_id = $2",
+    )
+    .bind(id)
+    .bind(user_id.value())
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(AppError::Validation("Site not found.".into()))?;
+
+    let databases = sqlx::query_as::<_, crate::models::SiteDatabase>(
+        "SELECT id, site_id, db_name, db_user, created_at FROM site_databases WHERE site_id = $1",
+    )
+    .bind(id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    if let Some(ref script) = state.config.site_delete_script {
+        let mut cmd = Command::new("sudo");
+        cmd.arg(script.as_os_str())
+            .arg(&site.domain)
+            .arg(&site.folder_path)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        for db in &databases {
+            cmd.arg(&db.db_name).arg(&db.db_user);
+        }
+        let output = cmd.output().await;
+        if let Ok(out) = output {
+            if !out.status.success() {
+                let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                tracing::warn!("site-delete script failed: {} {}", stdout, stderr);
+            }
+        } else if let Err(e) = output {
+            tracing::warn!("site-delete script error: {}", e);
+        }
+    }
+
+    sqlx::query("DELETE FROM site_databases WHERE site_id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await?;
     let r = sqlx::query("DELETE FROM sites WHERE id = $1 AND user_id = $2")
         .bind(id)
         .bind(user_id.value())
